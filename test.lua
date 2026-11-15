@@ -14,6 +14,8 @@ local Lighting          = game:GetService("Lighting")
 local StarterGui        = game:GetService("StarterGui")
 
 local LocalPlayer = Players.LocalPlayer
+-- ⭐ Tạo tên ẩn (3 chữ cái đầu + **)
+local safeName = string.sub(LocalPlayer.Name, 1, 3) .. "**"
 
 --==================================================================
 -- BẬT CHẾ ĐỘ MÀN HÌNH ĐEN TUYỆT ĐỐI (KHÔNG RENDER 3D)
@@ -34,7 +36,7 @@ blackFrame.ZIndex = 1
 blackFrame.Parent = blackoutGui
 
 --==================================================================
--- PARSE CONFIG (Các chức năng khác auto ON nếu không có)
+-- PARSE CONFIG
 --==================================================================
 local USER_CFG = (getgenv and getgenv().Config) or {}
 local function get(t, k, def)
@@ -50,8 +52,8 @@ local cfg = {
     spinBot          = get(USER_CFG, "SpinBot",          true),
     spinSpeed        = get(USER_CFG, "SpinSpeed",        90),
     farmSpeed        = get(USER_CFG, "FarmSpeed",        30),
-    collectDelay     = get(USER_CFG, "CollectDelay",     0.1),
-    maxFarmDist      = get(USER_CFG, "MaxFarmDist",      80), 
+    collectDelay     = get(USER_CFG, "CollectDelay",     0.4),
+    maxFarmDist      = get(USER_CFG, "MaxFarmDist",      100), 
     fpsCap           = get(USER_CFG, "FpsCap",           10), 
     hopMinCoins      = get(USER_CFG, "HopMinCoins",      150),
     hopWindow        = get(USER_CFG, "HopWindow",        600),
@@ -60,7 +62,6 @@ local cfg = {
     cycleFlashDur    = get(USER_CFG, "CycleFlashDur",    3),
 }
 
--- Parse Webhook
 local WH_CFG = USER_CFG.Webhook or {}
 local WH_ROLL = {
     enabled  = get(WH_CFG.Roll or {}, "Enabled",  true),
@@ -73,7 +74,6 @@ local WH_COIN = {
     step    = get(WH_CFG.Coin or {}, "Step",    1000),
 }
 
--- Parse AutoCrate
 local CRATE_CFG = USER_CFG.AutoCrate or {}
 local cfg_crate = {
     enabled    = get(CRATE_CFG, "Enabled", true),
@@ -98,7 +98,6 @@ local stats = {
     sessionStart    = os.clock(),
 }
 
--- Biến trạng thái
 local roundActive = false
 local isTweening = false
 local cycleReset = false
@@ -338,7 +337,7 @@ end
 task.spawn(function() while task.wait(0.5) do refreshStats() end end)
 
 --==================================================================
--- WEBHOOK SENDER
+-- WEBHOOK SENDER (Đã ẩn tên)
 --==================================================================
 local function sendWebhook(url, title, desc, color, fields, mention)
     if not url or url == "" or url == "DÁN_LINK_WEBHOOK_ROLL_VÀO_ĐÂY" or url == "DÁN_LINK_WEBHOOK_COIN_VÀO_ĐÂY" then return end
@@ -347,7 +346,7 @@ local function sendWebhook(url, title, desc, color, fields, mention)
         embeds = {{
             title = title, description = desc, color = color or 0xFF7620,
             timestamp = DateTime.now():ToIsoDate(),
-            footer = { text = "JobId: "..string.sub(game.JobId,1,8).." · "..LocalPlayer.Name },
+            footer = { text = "JobId: "..string.sub(game.JobId,1,8).." · "..safeName },
             fields = fields,
         }},
     }
@@ -469,7 +468,7 @@ task.spawn(function()
                     sendWebhook(WH_ROLL.url, "🎲 Roll: "..it.name,
                         "Rarity: **"..it.rarity.."**", 0xFF5050,
                         { { name="Server", value="`"..string.sub(game.JobId,1,8).."`", inline=true },
-                          { name="Player", value="`"..LocalPlayer.Name.."`", inline=true } })
+                          { name="Player", value="`"..safeName.."`", inline=true } })
                 end
             end
         end
@@ -575,7 +574,7 @@ if cfg.autoHop then
 end
 
 --==================================================================
--- AUTO CRATE (Mở hòm theo Config)
+-- AUTO CRATE
 --==================================================================
 local function findCrateRemote()
     return ReplicatedStorage:FindFirstChild("OpenCrate", true)
@@ -767,12 +766,10 @@ applyLagFix()
 refreshStats()
 setStatus("Sẵn sàng!", {70,255,90})
 
+-- ⭐ Đã xoá phần hiển thị Farm/Hop/Crate, chỉ giữ lại thông tin cơ bản
 if WH_ROLL.url ~= "" or WH_COIN.url ~= "" then
     sendWebhook(WH_ROLL.url ~= "" and WH_ROLL.url or WH_COIN.url,
         "✅ Script Started",
-        "Player: `"..LocalPlayer.Name.."`\nPlace: `"..game.PlaceId.."`\nJobId: `"..string.sub(game.JobId,1,8).."`",
-        0x46FF5A,
-        { { name="Farm",  value="`ON`", inline=true },
-          { name="Hop",   value=cfg.autoHop and "`ON`" or "`OFF`", inline=true },
-          { name="Crate", value=cfg_crate.enabled and "`ON`" or "`OFF`", inline=true } })
+        "Player: `"..safeName.."`\nPlace: `"..game.PlaceId.."`\nJobId: `"..string.sub(game.JobId,1,8).."`",
+        0x46FF5A)
 end
